@@ -19,6 +19,8 @@ No root `package.json`, no workspaces. Each project installs and runs independen
 
 This version has breaking changes vs. older training data. **Before editing any frontend code**, consult `frontend/node_modules/next/dist/docs/` for current APIs. Do **not** rely on memory of Next 13/14/15 patterns.
 
+`frontend/AGENTS.md` (loaded via `frontend/CLAUDE.md`) restates this rule for agents that scope their context to the frontend project.
+
 ---
 
 ## Ports
@@ -30,7 +32,7 @@ This version has breaking changes vs. older training data. **Before editing any 
 
 Frontend talks to backend via `NEXT_PUBLIC_API_URL` (see `frontend/.env.local`, defaults to `http://localhost:8000`).
 
-**TODO:** backend `main.ts` does not yet enable CORS. Allow `http://localhost:3000` (and production origin) before the frontend can hit it cross-origin. See the security snippet in the Backend Architecture section.
+CORS, `helmet`, `cookie-parser` and a global `ValidationPipe` are already wired in `backend/src/main.ts`. The dev origin `http://localhost:3000` is the default; override via the `ALLOWED_ORIGIN` env var. Backend env is loaded from `backend/.env` via `dotenv/config`.
 
 ---
 
@@ -69,7 +71,7 @@ npx jest path/to/file.spec.ts
 npx jest -t "test name pattern"
 ```
 
-**Frontend tests:** no runner configured yet. Add Vitest (recommended for Next 16) or Jest before writing tests; do not assume `npm test` works in `frontend/`.
+**Frontend tests:** no runner configured yet. Add Vitest (recommended for Next 16) or Jest before writing tests; do not assume `npm test` works in `frontend/`. No `*.spec.tsx` files exist on the frontend yet; backend has one Nest sample (`app.controller.spec.ts`).
 
 ---
 
@@ -94,6 +96,37 @@ src/
     feature.spec.ts         # Unit tests (service layer)
 ```
 
+### Database (Prisma + Postgres)
+
+- ORM is **Prisma 7** (`backend/prisma/schema.prisma`).
+- Provider: `postgresql`, datasource url = `$DATABASE_URL`. A `backend/jain-co-erp.sqlite` file exists from an earlier experiment — ignore it.
+- `PrismaModule` (`src/prisma/prisma.module.ts`) exposes `PrismaService`. Inject `PrismaService` instead of `new`ing a client.
+- Sole model today: `User` (`id` uuid, `email` unique, `password` bcrypt hash, optional `empId` / `name` / contact + reporting fields, `role` enum `admin | user`).
+- A legacy `src/users/schemas/user.schema.ts` survives from a TypeORM scaffold; auth code does **not** use it. Treat as dead until removed.
+
+**Commands (from `backend/`):**
+
+```bash
+npx prisma migrate dev --name <slug>   # create + apply migration in dev
+npx prisma migrate deploy              # apply pending migrations in prod
+npx prisma generate                    # regen client after schema edits
+npx prisma studio                      # browser GUI
+```
+
+Env: `DATABASE_URL=postgresql://…` in `backend/.env`. Loaded by `dotenv/config` at the top of both `src/main.ts` and `prisma.config.ts`.
+
+### Auth Flow (cookie-based JWT)
+
+- `auth/auth.module.ts` wires `@nestjs/jwt` + `passport-jwt` + `passport-local` + `PrismaModule`.
+- Strategy: `auth/strategies/jwt.strategy.ts` reads the token from an httpOnly cookie.
+- Guard: `auth/guards/jwt-auth.guard.ts` — apply with `@UseGuards(JwtAuthGuard)` on protected controllers/handlers.
+- Endpoints (`auth/auth.controller.ts`):
+  - `POST /auth/register` — creates a user with bcrypt-hashed password.
+  - `POST /auth/login` — sets `Set-Cookie: access_token=…; HttpOnly`.
+  - `POST /auth/logout` — clears the cookie.
+  - `GET /auth/me` — guarded; returns the current `AuthUser` (id, email, role, optional name).
+- Frontend mirror: `frontend/src/services/auth.service.ts` calls these endpoints via `lib/api/client.ts` (`withCredentials: true`). `context/AuthProvider.tsx` hydrates `user` by calling `/auth/me` on mount.
+
 ### SOLID Principles (Backend)
 
 | Principle | Rule |
@@ -106,7 +139,7 @@ src/
 
 ### Security Checklist (Backend)
 
-Add the following to `main.ts` **before** first deploy:
+The block below is already wired in `backend/src/main.ts` — keep it intact when refactoring. Items in **Additional security rules** (throttler, dedicated logger, etc.) remain TODO:
 
 ```ts
 import { ValidationPipe } from '@nestjs/common';
@@ -207,6 +240,21 @@ src/
 ```
 
 When adding a new context: follow the three-file pattern shown above (Context type file, Provider file, consumer hook) and register the provider in `src/providers/index.tsx`.
+
+### Layout Shell
+
+Authenticated pages render inside `<DashboardShell title subtitle>` (`src/components/layout/DashboardShell.tsx`), which composes:
+
+- `Sidebar.tsx` — fixed 256px sidebar (lg+), grouped nav (Overview / Operations / Insights / System), active state via `usePathname()`.
+- `Topbar.tsx` — page title + subtitle, global search, notifications, settings, user menu with logout. Uses `useAuth()` and shows `user.name ?? user.email`.
+
+New authenticated pages should mount through `DashboardShell` rather than re-implementing chrome.
+
+### Loaders
+
+- `components/ui/Loader.tsx` — inline spinner. Props: `size: 'sm' | 'md' | 'lg'`, `tone: 'primary' | 'on-primary'`, optional `label`. Use `on-primary` when placed on a blue background (e.g. inside a `bg-primary` button).
+- `components/ui/PageLoader.tsx` — full-screen branded loader. Use for client-side auth gates and as a Suspense fallback.
+- Route-level loaders already exist at `app/loading.tsx`, `app/login/loading.tsx`, `app/dashboard/loading.tsx`; Next.js wires these into navigation suspense automatically. New routes only need their own `loading.tsx` if a custom label is required.
 
 ### Env Vars
 
@@ -503,3 +551,13 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 - Buttons:         10px
 - Inputs:          8px
 - Toggles:         full (pill)
+
+### Using the Palette in Code
+
+Color tokens are declared in `frontend/src/app/globals.css` inside `@theme inline`. Tailwind v4 auto-generates utilities from each `--color-*` token:
+
+- Backgrounds: `bg-primary`, `bg-primary-dark`, `bg-primary-light`, `bg-navy`, `bg-page`, `bg-card`, `bg-input`, `bg-overlay`
+- Text: `text-heading`, `text-body`, `text-muted`, `text-on-primary`, `text-primary`
+- Borders: `border-line`, `border-line-hover`, `border-line-active`
+
+Use these utilities everywhere in app chrome (sidebar, topbar, dashboard, modals, forms). Do **not** reach for raw Tailwind palette names like `slate-*`, `indigo-*`, `emerald-*`, `amber-*` outside the marketing splash on `/login`, which keeps the original gradient + skyline artwork.
