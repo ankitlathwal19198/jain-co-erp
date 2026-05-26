@@ -48,6 +48,8 @@ const jwt_1 = require("@nestjs/jwt");
 const bcrypt = __importStar(require("bcrypt"));
 const users_service_1 = require("../users/users.service");
 const user_schema_1 = require("../users/schemas/user.schema");
+const REFRESH_SECRET = process.env.JWT_REFRESH_SECRET ??
+    `${process.env.JWT_SECRET ?? 'change-me-in-production'}-refresh`;
 let AuthService = class AuthService {
     usersService;
     jwtService;
@@ -66,11 +68,29 @@ let AuthService = class AuthService {
         const valid = await bcrypt.compare(dto.password, user.password);
         if (!valid)
             throw new common_1.UnauthorizedException('Invalid credentials');
-        return this.jwtService.sign({
-            sub: user.id,
-            email: user.email,
-            role: user.role,
+        return this.issueTokens({ sub: user.id, email: user.email });
+    }
+    issueTokens(payload) {
+        const accessToken = this.jwtService.sign(payload, { expiresIn: '15m' });
+        const refreshToken = this.jwtService.sign(payload, {
+            expiresIn: '7d',
+            secret: REFRESH_SECRET,
         });
+        return { accessToken, refreshToken };
+    }
+    async verifyRefresh(token) {
+        try {
+            const payload = await this.jwtService.verifyAsync(token, {
+                secret: REFRESH_SECRET,
+            });
+            const user = await this.usersService.findById(payload.sub);
+            if (!user)
+                throw new common_1.UnauthorizedException();
+            return { sub: user.id, email: user.email };
+        }
+        catch {
+            throw new common_1.UnauthorizedException('Invalid refresh token');
+        }
     }
 };
 exports.AuthService = AuthService;

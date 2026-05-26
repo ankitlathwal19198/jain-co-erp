@@ -11,5 +11,6 @@ export declare class CreateUserDto {
     reportingNo?: string;
     leaveApproval?: string;
     leaveAppNo?: string;
-    role?: 'admin' | 'user';
+    roleId?: string;
+    reportingManagerId?: string;
 }

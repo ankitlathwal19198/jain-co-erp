@@ -1,8 +1,8 @@
 import {
   IsEmail,
-  IsEnum,
   IsOptional,
   IsString,
+  IsUUID,
   Matches,
   MinLength,
 } from 'class-validator';
@@ -58,6 +58,10 @@ export class CreateUserDto {
   leaveAppNo?: string;
 
   @IsOptional()
-  @IsEnum(['admin', 'user'])
-  role?: 'admin' | 'user';
+  @IsUUID()
+  roleId?: string;
+
+  @IsOptional()
+  @IsUUID()
+  reportingManagerId?: string;
 }

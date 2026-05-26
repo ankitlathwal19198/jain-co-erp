@@ -9,9 +9,80 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  admin
-  user
+enum TaskPriority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum TaskFrequency {
+  none
+  daily
+  weekly
+  monthly
+  quarterly
+  yearly
+}
+
+enum TaskStatus {
+  open
+  in_progress
+  resolved
+  reopened
+  closed
+}
+
+enum OccurrenceStatus {
+  pending
+  resolved
+  reopened
+}
+
+enum ExtensionStatus {
+  pending
+  approved
+  rejected
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  isSystem    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users       User[]
+  permissions RolePermission[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String   @id @default(uuid())
+  code        String   @unique
+  module      String
+  action      String
+  description String?
+  createdAt   DateTime @default(now())
+
+  roles       RolePermission[]
+
+  @@index([module])
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String
+  permissionId String
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  createdAt    DateTime   @default(now())
+
+  @@id([roleId, permissionId])
+  @@index([permissionId])
+  @@map("role_permissions")
 }
 
 model User {
@@ -28,9 +99,87 @@ model User {
   reportingNo      String?
   leaveApproval    String?
   leaveAppNo       String?
-  role             Role     @default(user)
+  roleId           String?
+  role             Role?    @relation(fields: [roleId], references: [id], onDelete: SetNull)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 
+  reportingManagerId String?
+  manager            User?   @relation("UserManager", fields: [reportingManagerId], references: [id], onDelete: SetNull)
+  directReports      User[]  @relation("UserManager")
+
+  tasksAssigned     Task[] @relation("TasksAssigner")
+  tasksReceived     Task[] @relation("TasksAssignee")
+  extensionRequests TaskExtensionRequest[] @relation("ExtensionRequester")
+  extensionDecisions TaskExtensionRequest[] @relation("ExtensionDecider")
+
+  @@index([roleId])
   @@map("users")
+}
+
+model Task {
+  id                     String        @id @default(uuid())
+  title                  String
+  description            String?
+  priority               TaskPriority  @default(medium)
+  frequency              TaskFrequency @default(none)
+  startDate              DateTime?
+  initialPlannedDate     DateTime
+  recurrenceEndDate      DateTime?
+  status                 TaskStatus    @default(open)
+  lastGeneratedThrough   DateTime?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  assignerId  String
+  assigneeId  String
+  assigner    User   @relation("TasksAssigner", fields: [assignerId], references: [id], onDelete: Restrict)
+  assignee    User   @relation("TasksAssignee", fields: [assigneeId], references: [id], onDelete: Restrict)
+
+  occurrences TaskOccurrence[]
+
+  @@index([assigneeId, status])
+  @@index([assignerId, status])
+  @@map("tasks")
+}
+
+model TaskOccurrence {
+  id            String           @id @default(uuid())
+  taskId        String
+  task          Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  plannedDate   DateTime
+  extendedDate  DateTime?
+  actualDate    DateTime?
+  status        OccurrenceStatus @default(pending)
+  delayDays     Int?
+  resolvedNote  String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  extensions    TaskExtensionRequest[]
+
+  @@unique([taskId, plannedDate])
+  @@index([status, plannedDate])
+  @@map("task_occurrences")
+}
+
+model TaskExtensionRequest {
+  id             String          @id @default(uuid())
+  occurrenceId   String
+  occurrence     TaskOccurrence  @relation(fields: [occurrenceId], references: [id], onDelete: Cascade)
+  requestedById  String
+  requestedBy    User            @relation("ExtensionRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  requestedDate  DateTime
+  reason         String?
+  status         ExtensionStatus @default(pending)
+  decidedById    String?
+  decidedBy      User?           @relation("ExtensionDecider", fields: [decidedById], references: [id], onDelete: SetNull)
+  decidedDate    DateTime?
+  decidedAt      DateTime?
+  decisionNote   String?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([occurrenceId, status])
+  @@map("task_extension_requests")
 }

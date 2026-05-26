@@ -18,11 +18,20 @@ const create_user_dto_1 = require("../users/dto/create-user.dto");
 const auth_service_1 = require("./auth.service");
 const login_dto_1 = require("./dto/login.dto");
 const jwt_auth_guard_1 = require("./guards/jwt-auth.guard");
-const COOKIE_OPTIONS = {
+const isProd = process.env.NODE_ENV === 'production';
+const ACCESS_COOKIE = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
+    secure: isProd,
+    sameSite: 'lax',
+    maxAge: 15 * 60 * 1000,
+    path: '/',
+};
+const REFRESH_COOKIE = {
+    httpOnly: true,
+    secure: isProd,
     sameSite: 'lax',
     maxAge: 7 * 24 * 60 * 60 * 1000,
+    path: '/auth',
 };
 let AuthController = class AuthController {
     authService;
@@ -33,12 +42,24 @@ let AuthController = class AuthController {
         return this.authService.register(dto);
     }
     async login(dto, res) {
-        const token = await this.authService.login(dto);
-        res.cookie('access_token', token, COOKIE_OPTIONS);
+        const { accessToken, refreshToken } = await this.authService.login(dto);
+        res.cookie('access_token', accessToken, ACCESS_COOKIE);
+        res.cookie('refresh_token', refreshToken, REFRESH_COOKIE);
         return { message: 'Login successful' };
     }
+    async refresh(req, res) {
+        const token = req.cookies?.['refresh_token'];
+        if (!token)
+            throw new common_1.UnauthorizedException('Missing refresh token');
+        const payload = await this.authService.verifyRefresh(token);
+        const { accessToken, refreshToken } = this.authService.issueTokens(payload);
+        res.cookie('access_token', accessToken, ACCESS_COOKIE);
+        res.cookie('refresh_token', refreshToken, REFRESH_COOKIE);
+        return { message: 'Refreshed' };
+    }
     logout(res) {
-        res.clearCookie('access_token', COOKIE_OPTIONS);
+        res.clearCookie('access_token', { ...ACCESS_COOKIE, maxAge: undefined });
+        res.clearCookie('refresh_token', { ...REFRESH_COOKIE, maxAge: undefined });
         return { message: 'Logged out' };
     }
     me(req) {
@@ -62,6 +83,15 @@ __decorate([
     __metadata("design:paramtypes", [login_dto_1.LoginDto, Object]),
     __metadata("design:returntype", Promise)
 ], AuthController.prototype, "login", null);
+__decorate([
+    (0, common_1.Post)('refresh'),
+    (0, common_1.HttpCode)(common_1.HttpStatus.OK),
+    __param(0, (0, common_1.Req)()),
+    __param(1, (0, common_1.Res)({ passthrough: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", Promise)
+], AuthController.prototype, "refresh", null);
 __decorate([
     (0, common_1.Post)('logout'),
     (0, common_1.HttpCode)(common_1.HttpStatus.OK),

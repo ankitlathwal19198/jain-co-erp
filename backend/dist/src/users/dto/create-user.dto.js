@@ -24,7 +24,8 @@ class CreateUserDto {
     reportingNo;
     leaveApproval;
     leaveAppNo;
-    role;
+    roleId;
+    reportingManagerId;
 }
 exports.CreateUserDto = CreateUserDto;
 __decorate([
@@ -90,7 +91,12 @@ __decorate([
 ], CreateUserDto.prototype, "leaveAppNo", void 0);
 __decorate([
     (0, class_validator_1.IsOptional)(),
-    (0, class_validator_1.IsEnum)(['admin', 'user']),
+    (0, class_validator_1.IsUUID)(),
     __metadata("design:type", String)
-], CreateUserDto.prototype, "role", void 0);
+], CreateUserDto.prototype, "roleId", void 0);
+__decorate([
+    (0, class_validator_1.IsOptional)(),
+    (0, class_validator_1.IsUUID)(),
+    __metadata("design:type", String)
+], CreateUserDto.prototype, "reportingManagerId", void 0);
 //# sourceMappingURL=create-user.dto.js.map
