@@ -12,43 +12,43 @@ export declare class TasksService {
     private assertCanAssign;
     create(assignerId: string, dto: CreateTaskDto): Promise<{
         assigner: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         assignee: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         occurrences: ({
             extensions: ({
                 requestedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 };
                 decidedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 } | null;
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.ExtensionStatus;
                 requestedDate: Date;
                 reason: string | null;
-                decisionNote: string | null;
-                status: import("@prisma/client").$Enums.ExtensionStatus;
                 decidedDate: Date | null;
                 decidedAt: Date | null;
+                decisionNote: string | null;
                 occurrenceId: string;
                 requestedById: string;
                 decidedById: string | null;
@@ -57,8 +57,8 @@ export declare class TasksService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.OccurrenceStatus;
             plannedDate: Date;
+            status: import("@prisma/client").$Enums.OccurrenceStatus;
             extendedDate: Date | null;
             actualDate: Date | null;
             delayDays: number | null;
@@ -67,60 +67,60 @@ export declare class TasksService {
         })[];
     } & {
         id: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        description: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.TaskPriority;
         frequency: import("@prisma/client").$Enums.TaskFrequency;
         startDate: Date | null;
         initialPlannedDate: Date;
         recurrenceEndDate: Date | null;
-        assigneeId: string;
         status: import("@prisma/client").$Enums.TaskStatus;
         lastGeneratedThrough: Date | null;
         assignerId: string;
+        assigneeId: string;
     }>;
     list(currentUserId: string, query: ListTasksDto, viewAll?: boolean): Promise<{
         data: ({
             assigner: {
+                id: string;
+                name: string | null;
                 role: {
                     name: string;
                 } | null;
                 email: string;
-                name: string | null;
-                id: string;
             };
             assignee: {
+                id: string;
+                name: string | null;
                 role: {
                     name: string;
                 } | null;
                 email: string;
-                name: string | null;
-                id: string;
             };
             occurrences: ({
                 extensions: ({
                     requestedBy: {
-                        email: string;
-                        name: string | null;
                         id: string;
+                        name: string | null;
+                        email: string;
                     };
                     decidedBy: {
-                        email: string;
-                        name: string | null;
                         id: string;
+                        name: string | null;
+                        email: string;
                     } | null;
                 } & {
                     id: string;
                     createdAt: Date;
                     updatedAt: Date;
+                    status: import("@prisma/client").$Enums.ExtensionStatus;
                     requestedDate: Date;
                     reason: string | null;
-                    decisionNote: string | null;
-                    status: import("@prisma/client").$Enums.ExtensionStatus;
                     decidedDate: Date | null;
                     decidedAt: Date | null;
+                    decisionNote: string | null;
                     occurrenceId: string;
                     requestedById: string;
                     decidedById: string | null;
@@ -129,8 +129,8 @@ export declare class TasksService {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
-                status: import("@prisma/client").$Enums.OccurrenceStatus;
                 plannedDate: Date;
+                status: import("@prisma/client").$Enums.OccurrenceStatus;
                 extendedDate: Date | null;
                 actualDate: Date | null;
                 delayDays: number | null;
@@ -139,19 +139,19 @@ export declare class TasksService {
             })[];
         } & {
             id: string;
+            description: string | null;
             createdAt: Date;
             updatedAt: Date;
-            description: string | null;
             title: string;
             priority: import("@prisma/client").$Enums.TaskPriority;
             frequency: import("@prisma/client").$Enums.TaskFrequency;
             startDate: Date | null;
             initialPlannedDate: Date;
             recurrenceEndDate: Date | null;
-            assigneeId: string;
             status: import("@prisma/client").$Enums.TaskStatus;
             lastGeneratedThrough: Date | null;
             assignerId: string;
+            assigneeId: string;
         })[];
         total: number;
         page: number;
@@ -160,43 +160,43 @@ export declare class TasksService {
     }>;
     detail(currentUserId: string, taskId: string): Promise<{
         assigner: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         assignee: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         occurrences: ({
             extensions: ({
                 requestedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 };
                 decidedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 } | null;
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.ExtensionStatus;
                 requestedDate: Date;
                 reason: string | null;
-                decisionNote: string | null;
-                status: import("@prisma/client").$Enums.ExtensionStatus;
                 decidedDate: Date | null;
                 decidedAt: Date | null;
+                decisionNote: string | null;
                 occurrenceId: string;
                 requestedById: string;
                 decidedById: string | null;
@@ -205,8 +205,8 @@ export declare class TasksService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.OccurrenceStatus;
             plannedDate: Date;
+            status: import("@prisma/client").$Enums.OccurrenceStatus;
             extendedDate: Date | null;
             actualDate: Date | null;
             delayDays: number | null;
@@ -215,59 +215,59 @@ export declare class TasksService {
         })[];
     } & {
         id: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        description: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.TaskPriority;
         frequency: import("@prisma/client").$Enums.TaskFrequency;
         startDate: Date | null;
         initialPlannedDate: Date;
         recurrenceEndDate: Date | null;
-        assigneeId: string;
         status: import("@prisma/client").$Enums.TaskStatus;
         lastGeneratedThrough: Date | null;
         assignerId: string;
+        assigneeId: string;
     }>;
     update(currentUserId: string, taskId: string, dto: UpdateTaskDto): Promise<{
         assigner: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         assignee: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         occurrences: ({
             extensions: ({
                 requestedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 };
                 decidedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 } | null;
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.ExtensionStatus;
                 requestedDate: Date;
                 reason: string | null;
-                decisionNote: string | null;
-                status: import("@prisma/client").$Enums.ExtensionStatus;
                 decidedDate: Date | null;
                 decidedAt: Date | null;
+                decisionNote: string | null;
                 occurrenceId: string;
                 requestedById: string;
                 decidedById: string | null;
@@ -276,8 +276,8 @@ export declare class TasksService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.OccurrenceStatus;
             plannedDate: Date;
+            status: import("@prisma/client").$Enums.OccurrenceStatus;
             extendedDate: Date | null;
             actualDate: Date | null;
             delayDays: number | null;
@@ -286,59 +286,59 @@ export declare class TasksService {
         })[];
     } & {
         id: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        description: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.TaskPriority;
         frequency: import("@prisma/client").$Enums.TaskFrequency;
         startDate: Date | null;
         initialPlannedDate: Date;
         recurrenceEndDate: Date | null;
-        assigneeId: string;
         status: import("@prisma/client").$Enums.TaskStatus;
         lastGeneratedThrough: Date | null;
         assignerId: string;
+        assigneeId: string;
     }>;
     close(currentUserId: string, taskId: string): Promise<{
         assigner: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         assignee: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         occurrences: ({
             extensions: ({
                 requestedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 };
                 decidedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 } | null;
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.ExtensionStatus;
                 requestedDate: Date;
                 reason: string | null;
-                decisionNote: string | null;
-                status: import("@prisma/client").$Enums.ExtensionStatus;
                 decidedDate: Date | null;
                 decidedAt: Date | null;
+                decisionNote: string | null;
                 occurrenceId: string;
                 requestedById: string;
                 decidedById: string | null;
@@ -347,8 +347,8 @@ export declare class TasksService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.OccurrenceStatus;
             plannedDate: Date;
+            status: import("@prisma/client").$Enums.OccurrenceStatus;
             extendedDate: Date | null;
             actualDate: Date | null;
             delayDays: number | null;
@@ -357,59 +357,59 @@ export declare class TasksService {
         })[];
     } & {
         id: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        description: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.TaskPriority;
         frequency: import("@prisma/client").$Enums.TaskFrequency;
         startDate: Date | null;
         initialPlannedDate: Date;
         recurrenceEndDate: Date | null;
-        assigneeId: string;
         status: import("@prisma/client").$Enums.TaskStatus;
         lastGeneratedThrough: Date | null;
         assignerId: string;
+        assigneeId: string;
     }>;
     markInProgress(currentUserId: string, taskId: string): Promise<{
         assigner: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         assignee: {
+            id: string;
+            name: string | null;
             role: {
                 name: string;
             } | null;
             email: string;
-            name: string | null;
-            id: string;
         };
         occurrences: ({
             extensions: ({
                 requestedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 };
                 decidedBy: {
-                    email: string;
-                    name: string | null;
                     id: string;
+                    name: string | null;
+                    email: string;
                 } | null;
             } & {
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;
+                status: import("@prisma/client").$Enums.ExtensionStatus;
                 requestedDate: Date;
                 reason: string | null;
-                decisionNote: string | null;
-                status: import("@prisma/client").$Enums.ExtensionStatus;
                 decidedDate: Date | null;
                 decidedAt: Date | null;
+                decisionNote: string | null;
                 occurrenceId: string;
                 requestedById: string;
                 decidedById: string | null;
@@ -418,8 +418,8 @@ export declare class TasksService {
             id: string;
             createdAt: Date;
             updatedAt: Date;
-            status: import("@prisma/client").$Enums.OccurrenceStatus;
             plannedDate: Date;
+            status: import("@prisma/client").$Enums.OccurrenceStatus;
             extendedDate: Date | null;
             actualDate: Date | null;
             delayDays: number | null;
@@ -428,26 +428,26 @@ export declare class TasksService {
         })[];
     } & {
         id: string;
+        description: string | null;
         createdAt: Date;
         updatedAt: Date;
-        description: string | null;
         title: string;
         priority: import("@prisma/client").$Enums.TaskPriority;
         frequency: import("@prisma/client").$Enums.TaskFrequency;
         startDate: Date | null;
         initialPlannedDate: Date;
         recurrenceEndDate: Date | null;
-        assigneeId: string;
         status: import("@prisma/client").$Enums.TaskStatus;
         lastGeneratedThrough: Date | null;
         assignerId: string;
+        assigneeId: string;
     }>;
     resolveOccurrence(currentUserId: string, occurrenceId: string, dto: ResolveOccurrenceDto): Promise<{
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: import("@prisma/client").$Enums.OccurrenceStatus;
         plannedDate: Date;
+        status: import("@prisma/client").$Enums.OccurrenceStatus;
         extendedDate: Date | null;
         actualDate: Date | null;
         delayDays: number | null;
@@ -458,8 +458,8 @@ export declare class TasksService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: import("@prisma/client").$Enums.OccurrenceStatus;
         plannedDate: Date;
+        status: import("@prisma/client").$Enums.OccurrenceStatus;
         extendedDate: Date | null;
         actualDate: Date | null;
         delayDays: number | null;
@@ -468,20 +468,20 @@ export declare class TasksService {
     }>;
     requestExtension(currentUserId: string, occurrenceId: string, dto: CreateExtensionDto): Promise<{
         requestedBy: {
-            email: string;
-            name: string | null;
             id: string;
+            name: string | null;
+            email: string;
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        status: import("@prisma/client").$Enums.ExtensionStatus;
         requestedDate: Date;
         reason: string | null;
-        decisionNote: string | null;
-        status: import("@prisma/client").$Enums.ExtensionStatus;
         decidedDate: Date | null;
         decidedAt: Date | null;
+        decisionNote: string | null;
         occurrenceId: string;
         requestedById: string;
         decidedById: string | null;
@@ -490,12 +490,12 @@ export declare class TasksService {
         id: string;
         createdAt: Date;
         updatedAt: Date;
+        status: import("@prisma/client").$Enums.ExtensionStatus;
         requestedDate: Date;
         reason: string | null;
-        decisionNote: string | null;
-        status: import("@prisma/client").$Enums.ExtensionStatus;
         decidedDate: Date | null;
         decidedAt: Date | null;
+        decisionNote: string | null;
         occurrenceId: string;
         requestedById: string;
         decidedById: string | null;
@@ -503,20 +503,20 @@ export declare class TasksService {
     occurrencesDueToday(currentUserId: string, limit?: number): Promise<({
         task: {
             id: string;
+            assigner: {
+                id: string;
+                name: string | null;
+                email: string;
+            };
             title: string;
             priority: import("@prisma/client").$Enums.TaskPriority;
-            assigner: {
-                email: string;
-                name: string | null;
-                id: string;
-            };
         };
     } & {
         id: string;
         createdAt: Date;
         updatedAt: Date;
-        status: import("@prisma/client").$Enums.OccurrenceStatus;
         plannedDate: Date;
+        status: import("@prisma/client").$Enums.OccurrenceStatus;
         extendedDate: Date | null;
         actualDate: Date | null;
         delayDays: number | null;
