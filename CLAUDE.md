@@ -101,8 +101,12 @@ src/
 - ORM is **Prisma 7** (`backend/prisma/schema.prisma`).
 - Provider: `postgresql`, datasource url = `$DATABASE_URL`. A `backend/jain-co-erp.sqlite` file exists from an earlier experiment — ignore it.
 - `PrismaModule` (`src/prisma/prisma.module.ts`) exposes `PrismaService`. Inject `PrismaService` instead of `new`ing a client.
-- Sole model today: `User` (`id` uuid, `email` unique, `password` bcrypt hash, optional `empId` / `name` / contact + reporting fields, `role` enum `admin | user`).
+- Models (`schema.prisma`):
+  - **RBAC:** `Role`, `Permission`, `RolePermission` (M:N join). `User.roleId` → `Role`. There is **no** `admin | user` enum anymore — roles are data, not enum values.
+  - **User:** `id` uuid, `email` unique, `password` bcrypt hash, optional `empId` (unique) / `name` / contact + reporting fields. Self-relation `reportingManagerId` → `manager` / `directReports`.
+  - **Task delegation:** `Task` (recurring, `frequency` enum) → `TaskOccurrence` (one per planned date, `@@unique([taskId, plannedDate])`) → `TaskExtensionRequest`. Enums: `TaskPriority`, `TaskFrequency`, `TaskStatus`, `OccurrenceStatus`, `ExtensionStatus`.
 - A legacy `src/users/schemas/user.schema.ts` survives from a TypeORM scaffold; auth code does **not** use it. Treat as dead until removed.
+- Migration `20260526102433_add_ticket_system` exists but the ticket models were dropped from `schema.prisma`. The frontend `lib/permissions.ts` still lists `TICKETS_*` codes that the backend catalog (`permissions.catalog.ts`) does **not** seed — known drift; do not rely on ticket permissions backend-side.
 
 **Commands (from `backend/`):**
 
@@ -120,12 +124,37 @@ Env: `DATABASE_URL=postgresql://…` in `backend/.env`. Loaded by `dotenv/config
 - `auth/auth.module.ts` wires `@nestjs/jwt` + `passport-jwt` + `passport-local` + `PrismaModule`.
 - Strategy: `auth/strategies/jwt.strategy.ts` reads the token from an httpOnly cookie.
 - Guard: `auth/guards/jwt-auth.guard.ts` — apply with `@UseGuards(JwtAuthGuard)` on protected controllers/handlers.
+- `JwtStrategy.validate` calls `UsersService.loadAuthenticated(sub)` to build the request `user` as `AuthenticatedUser` (`authenticated-user.type.ts`): `{ id, email, name, roleId, roleName, permissions: string[], isSuperAdmin }`. The flattened `permissions` array is what guards check.
 - Endpoints (`auth/auth.controller.ts`):
   - `POST /auth/register` — creates a user with bcrypt-hashed password.
   - `POST /auth/login` — sets `Set-Cookie: access_token=…; HttpOnly`.
+  - `POST /auth/refresh` — re-issues the access cookie.
   - `POST /auth/logout` — clears the cookie.
-  - `GET /auth/me` — guarded; returns the current `AuthUser` (id, email, role, optional name).
-- Frontend mirror: `frontend/src/services/auth.service.ts` calls these endpoints via `lib/api/client.ts` (`withCredentials: true`). `context/AuthProvider.tsx` hydrates `user` by calling `/auth/me` on mount.
+  - `GET /auth/me` — guarded; returns the current `AuthenticatedUser`.
+- Frontend mirror: `frontend/src/services/auth.service.ts` calls these endpoints via `lib/api/client.ts` (`withCredentials: true`). `context/AuthProvider.tsx` hydrates `user` by calling `/auth/me` on mount; `useAuth()` exposes `hasPermission(code | code[])`.
+
+### Authorization (RBAC) — backend
+
+Permission enforcement is **separate** from authentication. Pattern:
+
+- `permissions/permissions.catalog.ts` — single source of truth: `PERMISSIONS` map (`module:action` strings, e.g. `tasks:view_all`), `PERMISSION_CATALOG`, the `SuperAdmin` / `Member` role names, and `SEED_USERS`.
+- `@RequirePermissions(PERMISSIONS.X, …)` (`require-permissions.decorator.ts`) tags handlers/controllers.
+- `PermissionsGuard` (`permissions.guard.ts`) reads the metadata, **bypasses every check when `user.roleName === SuperAdmin`**, else requires `every` listed code to be in `user.permissions`. Apply it alongside `JwtAuthGuard`.
+- `SeedService` (`seed/seed.service.ts`, `OnModuleInit`) upserts the catalog, the `SuperAdmin` role (granted all permissions) + `Member` role, and promotes/creates the `SEED_USERS` as SuperAdmins on every boot. Add a new permission by editing the catalog — the seed wires it on next start.
+
+### Domain Modules (current)
+
+All except `auth`/`register` are guarded by `JwtAuthGuard` + `PermissionsGuard`.
+
+| Module | Controller routes | Notes |
+|--------|-------------------|-------|
+| `users` | `GET /users`, `GET /users/lookup`, `GET /users/next-emp-id`, `GET/POST/PATCH/DELETE /users[/:id]` | `loadAuthenticated()` builds the request user for JWT strategy. |
+| `roles` | `GET/POST/PATCH/DELETE /roles[/:id]` | System roles (`isSystem`) should not be deleted. |
+| `permissions` | `GET /permissions` | Returns the catalog for the role editor UI. |
+| `tasks` | `POST/GET/PATCH/DELETE /tasks[/:id]`, `POST /tasks/:id/start`, `GET /tasks/occurrences/today`, `POST /tasks/occurrences/:id/{resolve,reopen}`, `POST /tasks/occurrences/:id/extensions`, `PATCH /tasks/extensions/:id` | Recurring delegation engine. |
+| `reports` | `GET /reports/doer-performance` | Aggregates occurrence on-time/delay stats per assignee; non-SuperAdmin is scoped to own data. |
+
+**Recurring tasks:** `tasks.service.ts` + `recurrence.util.ts` (UTC-day math, `startOfUtcDay`) materialize `TaskOccurrence` rows from a `Task`'s `frequency`/`initialPlannedDate`, tracking `lastGeneratedThrough`. `TasksScheduler` (`@Cron(EVERY_DAY_AT_MIDNIGHT)`, via `@nestjs/schedule`) calls `materializeRecurringOccurrences()` nightly. `ScheduleModule.forRoot()` must stay registered in `AppModule`.
 
 ### SOLID Principles (Backend)
 
@@ -249,6 +278,18 @@ Authenticated pages render inside `<DashboardShell title subtitle>` (`src/compon
 - `Topbar.tsx` — page title + subtitle, global search, notifications, settings, user menu with logout. Uses `useAuth()` and shows `user.name ?? user.email`.
 
 New authenticated pages should mount through `DashboardShell` rather than re-implementing chrome.
+
+### Authorization (RBAC) — frontend
+
+- `lib/permissions.ts` — `PERMISSIONS` code map + `SUPER_ADMIN_ROLE` (frontend mirror; see backend drift note above).
+- `useAuth()` exposes `hasPermission(code | code[])`; SuperAdmin short-circuits to true.
+- `components/auth/Can.tsx` — `<Can perm={…} fallback={…}>` conditionally renders children. Prefer this over inline permission checks in JSX.
+- `components/auth/RoutePermissionGuard.tsx` — wraps page content to gate whole routes.
+- Feature data flows through `services/*.service.ts` (axios) → `hooks/use*.ts` (React Query). Pages under `app/dashboard/{tasks,users,roles,reports}` consume those hooks; never fetch in the page directly.
+
+### Contexts (beyond the scaffold)
+
+`ConfirmDialogContext` / `ConfirmDialogProvider` + `useConfirm()` follow the same three-file pattern and are registered in `providers/index.tsx`. Use `await confirm({…})` for destructive-action confirmations instead of `window.confirm`.
 
 ### Loaders
 
